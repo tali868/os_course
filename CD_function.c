@@ -20,7 +20,7 @@ int main()
         flag=chdir(user_input);
         if (flag != 0) 
             // so chdir will return -1 
-            printf("chdir() to %s failed, try again", user_input);
+            printf("chdir() to %s failed, try again\n", user_input);
 
         //printf("new current directory: %s\n", getcwd(user_input, MAX_LINE_LENGHT));
     }
