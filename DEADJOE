@@ -1,0 +1,27 @@
+
+*** These modified files were found in JOE when it aborted on Wed Nov 16 13:22:31 2022
+*** JOE was aborted because the terminal closed
+
+*** File '(Unnamed)'
+/home/ubuntu/Repos/os_course/.git/COMMIT_EDITMSG
+
+*** File '/home/ubuntu/Repos/os_course/.git/COMMIT_EDITMSG'
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Committer: Ubuntu <ubuntu@ip-172-31-92-24.ec2.internal>
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	modified:   CD_function
+#	modified:   CD_function.c
+#
+
+*** File '* Startup Log *'
+Processing '/etc/joe/editorrc'...
+Processing '/etc/joe/ftyperc'...
+Finished processing /etc/joe/ftyperc
+Finished processing /etc/joe/editorrc
