@@ -15,24 +15,27 @@ int main()
     printf("should I stay(1) or should I go(0)? ");
     scanf("%d",&background_flag);
     char *args[]= {&to_exec,"-lh", path, NULL};
-    int curr_pid=fork();
+    pid_t curr_pid=fork();
+    pid_t dead_child;
 
     //father process
-    if (curr_pid==0)
+    if (curr_pid!=0)
     {  
         if (background_flag==1)
         {
-            printf("Father -  I'm waiting for child to finish\n");
-            int returnStatus;    
-            wait(NULL);
-            printf("Father - child finished!\n");
+            printf("Father -  I'm waiting for child pid %d to finish\n", curr_pid);
+            int returnStatus;
+            dead_child=waitpid(curr_pid, &returnStatus, 0);
+            sleep(1);
+            printf("Father - child pid - %d finished!\n", dead_child);
+            sleep(1);
         }
         else
         {
         printf("Father - no need to wait, we continue\n");
-        sleep(1);
-        return 0;            
+        sleep(1);           
         }
+        return 0;
     }
 
     //child process
