@@ -18,6 +18,12 @@ int main()
     pid_t curr_pid=fork();
     pid_t dead_child;
 
+    //error forking
+    if (curr_pid<0)
+    {
+        printf("error creating child process");
+    }
+    
     //father process
     if (curr_pid!=0)
     {  
@@ -26,14 +32,11 @@ int main()
             printf("Father -  I'm waiting for child pid %d to finish\n", curr_pid);
             int returnStatus;
             dead_child=waitpid(curr_pid, &returnStatus, 0);
-            sleep(1);
             printf("Father - child pid - %d finished!\n", dead_child);
-            sleep(1);
         }
         else
         {
-        printf("Father - no need to wait, we continue\n");
-        sleep(1);           
+        printf("Father - no need to wait, we continue\n");         
         }
         return 0;
     }
@@ -44,7 +47,6 @@ int main()
         printf("I'm the child, my pid is - %d and im execing -  %s\n", curr_pid, to_exec);
         execv(to_exec, args);
         printf("Child - I finished! now I'll die\n"); //shouldn't be seen
-        sleep(1);
     }
     return 0;
 }
