@@ -38,7 +38,6 @@ int main()
         {
         printf("Father - no need to wait, we continue\n");         
         }
-        return 0;
     }
 
     //child process
