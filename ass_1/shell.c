@@ -1,7 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h> 
 #include "shell.h"
+
+void cd(char* directory)
+{
+    int is_not_successful;
+    is_not_successful = chdir(directory);
+    if (is_not_successful != 0)
+        printf("hw1shell$ Changing directiry to %s failed, please try again\n", directory);
+}
 
 void trim_sides(char** user_input)
 {
@@ -78,7 +87,7 @@ void execute_input(Instruction *instruction)
 {
     if (strcmp(instruction->operation, "cd") == 0)
     {
-        // TODO: TALI
+        cd(instruction->directory);
     }
     else if (strcmp(instruction->operation, "jobs") == 0)
     {
@@ -87,6 +96,8 @@ void execute_input(Instruction *instruction)
     else {  // exit is handeled prior to this
     }
 }
+
+
 
 
 // TODO: TALI move all above functions to "imput parsing" files
