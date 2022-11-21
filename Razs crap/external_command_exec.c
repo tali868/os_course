@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <string.h>
 #include </home/ubuntu/Repos/HW_OS/ass_1/shell.h>
+#include "external_command_exec.h"
 #define MAX_LINE_LENGHT 100
 #define MAX_RUNNING_JOBS 4
 
