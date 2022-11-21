@@ -132,32 +132,3 @@ int main(int argc, char *argv[])
     free(input_buffer);
     
 }
-
-/***
- * for (int i = 0; i < len; i++) {
-        if (user_input[i] == ' ' || user_input[i] == "\n" || user_input[i] == "\t") {  // TODO: TALI check well end of file or other esge cases or whatever \0 etc
-            if (strcmp(instruction->operation, "cd") == 0)
-            {
-                if (strcmp(instruction->directory, "") == 0)
-                {
-                    strncpy(instruction->directory, user_input + word_start, i-word_start);
-                }
-                else  // invalid argument
-                {
-                    instruction->invalid_argument = true;
-                }
-            }
-            else
-            {
-                strncpy(op, user_input, i-1);
-                strcpy(instruction->directory, "");
-            }
-        }
-    }
-    if (!strcmp(instruction->operation, "cd") == 0 && !strcmp(instruction->operation, "jobs") && !strcmp(instruction->operation, "exit"))
-    {
-        strcpy(instruction->raw_instruction, user_input);
-        strcpy(instruction->operation, "inst");
-    }
- * 
- * **/
