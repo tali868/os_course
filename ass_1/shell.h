@@ -10,7 +10,7 @@ typedef int bool;
 
 typedef struct Instruction {
     char* raw_instruction;
-	char operation[4];
+	char* operation;
     bool backround;
     char* directory;
     bool invalid_argument;
