@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include </home/ubuntu/Repos/HW_OS/ass_1/shell.h>
 #define MAX_LINE_LENGHT 100
 
 int main()
@@ -15,24 +16,30 @@ int main()
     printf("should I stay(1) or should I go(0)? ");
     scanf("%d",&background_flag);
     char *args[]= {&to_exec,"-lh", path, NULL};
-    int curr_pid=fork();
+    pid_t curr_pid=fork();
+    pid_t dead_child;
 
+    //error forking
+    if (curr_pid<0)
+    {
+        printf("error creating child process");
+    }
+    
     //father process
-    if (curr_pid==0)
+    if (curr_pid!=0)
     {  
         if (background_flag==1)
         {
-            printf("Father -  I'm waiting for child to finish\n");
-            int returnStatus;    
-            wait(NULL);
-            printf("Father - child finished!\n");
+            printf("Father -  I'm waiting for child pid %d to finish\n", curr_pid);
+            int returnStatus;
+            dead_child=waitpid(curr_pid, &returnStatus, 0);
+            printf("Father - child pid - %d finished!\n", dead_child);
         }
         else
         {
-        printf("Father - no need to wait, we continue\n");
-        sleep(1);
-        return 0;            
+        printf("Father - no need to wait, we continue\n");         
         }
+        return 0;
     }
 
     //child process
@@ -41,7 +48,6 @@ int main()
         printf("I'm the child, my pid is - %d and im execing -  %s\n", curr_pid, to_exec);
         execv(to_exec, args);
         printf("Child - I finished! now I'll die\n"); //shouldn't be seen
-        sleep(1);
     }
     return 0;
 }
