@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#ifndef <string.h>
 #include <string.h>
 #include </home/ubuntu/Repos/HW_OS/ass_1/shell.h>
 #define MAX_LINE_LENGHT 100
