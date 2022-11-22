@@ -12,9 +12,11 @@
 //recieves a pointer to the Jobs List header and discard all dead processes from it
 void CheckAliveJobs (struct JobNode* jobs_pointer)
 {
+    int status;
+    int curr_status;
     struct JobNode* curr_job=jobs_pointer;
     struct JobNode* discard_job;
-    if (kill(curr_job->pid,0)!=0)
+    if (curr_status=waitpid(curr_job->pid,&status,WNOHANG)==0)
     {
         discard_job=curr_job;
         jobs_pointer=jobs_pointer->next;
@@ -24,7 +26,7 @@ void CheckAliveJobs (struct JobNode* jobs_pointer)
     while(curr_job->next!=NULL)
     {
         curr_job=curr_job->next;
-        if(kill(curr_job->pid,0)!=0)
+        if(curr_status=waitpid(curr_job->pid,&status,WNOHANG)==0)
         {
             discard_job=curr_job;
             curr_job=curr_job->next;
