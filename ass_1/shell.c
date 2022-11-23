@@ -2,7 +2,42 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <ctype.h>
 #include "shell.h"
+
+void check_alive_jobs(JobNode jobs[4])
+{
+    int status;
+    int curr_status;
+    JobNode curr_job;
+
+    for (int i = 0; i < 4; i+=1) {
+        curr_job = jobs[i];
+        if (curr_job.is_active == true)
+        {
+            curr_status = waitpid(curr_job.pid, &status, WNOHANG);
+            if (curr_status == 0)
+            {
+                jobs[i].is_active = false;
+            }
+        }
+    }
+}
+
+void kill_all_jobs(JobNode jobs[4])
+{
+    JobNode curr_job;
+    check_alive_jobs(jobs);
+    for (int i = 0; i < 4; i+=1) {
+        curr_job = jobs[i];
+        if (curr_job.is_active == true)
+        {
+            // kill(pid)
+        }
+    }
+}
+
 
 void trim_sides(char** user_input)
 {
@@ -82,6 +117,17 @@ void parse_input(Instruction *instruction, char** user_input)
     parse_user_input(instruction, *user_input);
 }
 
+void jobs_func(JobNode jobs[4])
+{
+    check_alive_jobs(jobs);
+    for (int i = 0; i < 4; i+=1) {
+        if (jobs[i].is_active == true)
+        {
+            printf("%ld\t%s", jobs[i].pid, jobs[i].raw_instruction);
+        }
+    }
+}
+
 
 void cd(char* directory)
 {
@@ -91,7 +137,7 @@ void cd(char* directory)
         printf("hw1shell$ Changing directiry to %s failed, please try again\n", directory);
 }
 
-void execute_input(Instruction *instruction)
+void execute_input(Instruction *instruction, JobNode jobs[4])
 {
     if (instruction->operation == CD)
     {
@@ -99,26 +145,51 @@ void execute_input(Instruction *instruction)
     }
     else if (instruction->operation == JOBS)
     {
-        // TODO: TALI
+        jobs_func(jobs);
     }
     else {  // exit is handeled prior to this
+        jobs[0].pid = 3424;
+        jobs[0].is_active = true;
     }
 }
 // TODO: TALI move all above functions to "imput parsing" files
 
+
+bool allocate_jobs(JobNode* jobs, int buf_size)
+{
+    jobs[0].raw_instruction = (char *)malloc(buf_size);
+    jobs[1].raw_instruction = (char *)malloc(buf_size);
+    jobs[2].raw_instruction = (char *)malloc(buf_size);
+    jobs[3].raw_instruction = (char *)malloc(buf_size);
+    if (jobs[0].raw_instruction == NULL || jobs[1].raw_instruction == NULL || jobs[2].raw_instruction == NULL || jobs[3].raw_instruction == NULL)
+    {
+        return false;
+    }
+    return true;
+}
+
+void free_jobs(JobNode* jobs)
+{
+    free(jobs[0].raw_instruction);
+    free(jobs[1].raw_instruction);
+    free(jobs[2].raw_instruction);
+    free(jobs[3].raw_instruction);
+}
 
 int main(int argc, char *argv[])
 {
     Instruction curr_instruction;
     size_t buf_size = MAX_LINE_LENGHT;
     char *input_buffer;
-    LocalJobNode job;  // TODO - RAZ allocate space when running a new job for raw_instruction
+    int job_allocation_status;  // TODO - RAZ allocate space when running a new job for raw_instruction
+    JobNode jobs[4];
 
     input_buffer = (char *)malloc(buf_size);
     curr_instruction.raw_instruction = (char *)malloc(buf_size);
     curr_instruction.directory = (char *)malloc(buf_size);
+    job_allocation_status = allocate_jobs(jobs, buf_size);
 
-    if (input_buffer == NULL || curr_instruction.raw_instruction == NULL || curr_instruction.directory == NULL)
+    if (input_buffer == NULL || curr_instruction.raw_instruction == NULL || curr_instruction.directory == NULL || job_allocation_status == false)
     {
         perror("Unable to allocate memory");
         exit(1);
@@ -136,11 +207,11 @@ int main(int argc, char *argv[])
         trim_sides(&tmp_input_buffer);
         parse_input(&curr_instruction, &tmp_input_buffer);
         if (curr_instruction.operation == EXIT) break;
-        execute_input(&curr_instruction);
-
+        execute_input(&curr_instruction, jobs);
     }
 
-    // TODO: TALI free jobs linked list
+    kill_all_jobs(&jobs);
+    free_jobs(jobs);
     free(curr_instruction.raw_instruction);
     free(curr_instruction.directory);
     free(input_buffer);

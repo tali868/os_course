@@ -18,8 +18,8 @@ typedef struct Instruction {
     char* directory;
 } Instruction;
 
-typedef struct LocalJobNode {
+typedef struct _JobNode {
     long pid;
     char* raw_instruction;
-    struct LocalJobNode* next;
-} LocalJobNode;
+    bool is_active;
+} JobNode;
