@@ -21,7 +21,7 @@ int check_alive_jobs(JobNode jobs[4])
             curr_status = waitpid(curr_job.pid, &status, WNOHANG);
             if (curr_status == 0)
             {
-                printd("hw1shell$ pid %ld finished", jobs[i].pid);
+                printd("hw1shell$ pid %ld finished\n", jobs[i].pid);
                 jobs[i].is_active = false;
                 alive_jobs--;
             }
