@@ -6,28 +6,32 @@
 #include <ctype.h>
 #include "shell.h"
 
-void check_alive_jobs(JobNode jobs[4])
+int check_alive_jobs(JobNode jobs[4])
 {
     int status;
     int curr_status;
     JobNode curr_job;
+    int alive_jobs = 0;
 
     for (int i = 0; i < 4; i+=1) {
         curr_job = jobs[i];
         if (curr_job.is_active == true)
         {
+            alive_jobs++;
             curr_status = waitpid(curr_job.pid, &status, WNOHANG);
             if (curr_status == 0)
             {
                 jobs[i].is_active = false;
+                alive_jobs--;
             }
         }
     }
+    return alive_jobs;
 }
 
 void kill_all_jobs(JobNode jobs[4])
 {
-    JobNode curr_job;
+    JobNode curr_job;   
     check_alive_jobs(jobs);
     for (int i = 0; i < 4; i+=1) {
         curr_job = jobs[i];
@@ -134,11 +138,12 @@ void cd(char* directory)
     int is_not_successful;
     is_not_successful = chdir(directory);
     if (is_not_successful != 0)
-        printf("hw1shell$ Changing directiry to %s failed, please try again\n", directory);
+        printf("hw1shell$ invalid command\n");
 }
 
 void execute_input(Instruction *instruction, JobNode jobs[4])
 {
+    int alive_jobs = check_alive_jobs(jobs);
     if (instruction->operation == CD)
     {
         cd(instruction->directory);
@@ -148,11 +153,16 @@ void execute_input(Instruction *instruction, JobNode jobs[4])
         jobs_func(jobs);
     }
     else {  // exit is handeled prior to this
-        jobs[0].pid = 3424;
-        jobs[0].is_active = true;
+        if (alive_jobs == 4)
+        {
+            printf("hw1shell$ too many background commands running\n");
+        }
+        else
+        {
+            // fork
+        }
     }
 }
-// TODO: TALI move all above functions to "imput parsing" files
 
 
 bool allocate_jobs(JobNode* jobs, int buf_size)
