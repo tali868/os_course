@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include "shell.h"
+#include <ctype.h>
+#include "parsing.h"
 
 void trim_sides(char** user_input)
 {
@@ -56,7 +56,7 @@ void parse_user_input(Instruction *instruction, char* user_input)
     }
     if (strcmp(op, "exit") == 0)
     {
-        instruction->operation = EXIT;
+        instruction->operation == EXIT;
         found_known = true;
         return;
     }
@@ -80,68 +80,4 @@ void parse_input(Instruction *instruction, char** user_input)
     if (instruction->is_backround == true) return;
 
     parse_user_input(instruction, *user_input);
-}
-
-
-void cd(char* directory)
-{
-    int is_not_successful;
-    is_not_successful = chdir(directory);
-    if (is_not_successful != 0)
-        printf("hw1shell$ Changing directiry to %s failed, please try again\n", directory);
-}
-
-void execute_input(Instruction *instruction)
-{
-    if (instruction->operation == CD)
-    {
-        cd(instruction->directory);
-    }
-    else if (instruction->operation == JOBS)
-    {
-        // TODO: TALI
-    }
-    else {  // exit is handeled prior to this
-    }
-}
-// TODO: TALI move all above functions to "imput parsing" files
-
-
-int main(int argc, char *argv[])
-{
-    Instruction curr_instruction;
-    size_t buf_size = MAX_LINE_LENGHT;
-    char *input_buffer;
-    LocalJobNode job;  // TODO - RAZ allocate space when running a new job for raw_instruction
-
-    input_buffer = (char *)malloc(buf_size);
-    curr_instruction.raw_instruction = (char *)malloc(buf_size);
-    curr_instruction.directory = (char *)malloc(buf_size);
-
-    if (input_buffer == NULL || curr_instruction.raw_instruction == NULL || curr_instruction.directory == NULL)
-    {
-        perror("Unable to allocate memory");
-        exit(1);
-    }
-
-    while (1)
-    {
-        char* tmp_input_buffer = input_buffer;
-        printf("hw1shell$ ");
-        getline(&tmp_input_buffer, &buf_size, stdin);
-        if (!strcmp(tmp_input_buffer, "\n"))
-        {
-            continue;
-        }
-        trim_sides(&tmp_input_buffer);
-        parse_input(&curr_instruction, &tmp_input_buffer);
-        if (curr_instruction.operation == EXIT) break;
-        execute_input(&curr_instruction);
-
-    }
-
-    // TODO: TALI free jobs linked list
-    free(curr_instruction.raw_instruction);
-    free(curr_instruction.directory);
-    free(input_buffer);
 }

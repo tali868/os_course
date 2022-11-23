@@ -2,22 +2,24 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define MAX_LINE_LENGHT 50
+#define MAX_LINE_LENGHT 100
 
-#define EXIT "exit"
-#define CD "cd"
-#define JOBS "jobs"
+typedef enum {
+    CD,
+    JOBS,
+    EXIT,
+    INST
+} InstructionType;
 
 typedef struct Instruction {
     char* raw_instruction;
-	char* operation;
-    bool backround;
+	InstructionType operation;
+    bool is_backround;
     char* directory;
-    bool invalid_argument;
 } Instruction;
 
-struct JobNode {
+typedef struct LocalJobNode {
     long pid;
     char* raw_instruction;
-    struct JobNode* next;
-} JobNode;
+    struct LocalJobNode* next;
+} LocalJobNode;
