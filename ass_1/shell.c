@@ -21,6 +21,7 @@ int check_alive_jobs(JobNode jobs[4])
             curr_status = waitpid(curr_job.pid, &status, WNOHANG);
             if (curr_status == 0)
             {
+                printd("hw1shell$ pid %ld finished\n", jobs[i].pid);
                 jobs[i].is_active = false;
                 alive_jobs--;
             }
@@ -127,7 +128,7 @@ void jobs_func(JobNode jobs[4])
     for (int i = 0; i < 4; i+=1) {
         if (jobs[i].is_active == true)
         {
-            printf("%ld\t%s", jobs[i].pid, jobs[i].raw_instruction);
+            printf("hw1shell$ %ld\t%s\n", jobs[i].pid, jobs[i].raw_instruction);
         }
     }
 }
