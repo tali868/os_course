@@ -23,7 +23,7 @@ int check_alive_jobs(JobNode jobs[4])
             curr_status = waitpid(curr_pid, &status, WNOHANG);
             if (curr_status == 0)
             {
-                printf("hw1shell$ pid %ld finished\n", jobs[i].pid);
+                printf("hw1shell: pid %ld finished\n", jobs[i].pid);
                 jobs[i].is_active = false;
                 alive_jobs--;
             }
@@ -129,11 +129,11 @@ void parse_input(Instruction *instruction, char** user_input)
 
 void jobs_func(JobNode jobs[4])
 {
-    check_alive_jobs(jobs);
+    //check_alive_jobs(jobs);
     for (int i = 0; i < 4; i+=1) {
-        if (jobs[i].is_active == true)
+        if (jobs[i].is_active)
         {
-            printf("hw1shell$ %ld\t%s\n", jobs[i].pid, jobs[i].raw_instruction);
+            printf("%ld\t%s\n", jobs[i].pid, jobs[i].raw_instruction);
         }
     }
 }
@@ -144,11 +144,11 @@ void cd(char* directory)
     int is_not_successful;
     is_not_successful = chdir(directory);
     if (is_not_successful != 0)
-        printf("hw1shell$ invalid command\n");
+        printf("hw1shell: invalid command\n");
 }
 
 //running external commands!
-int ExtComExec(Instruction* curr_inst, JobNode job_list[4])
+int ext_com_exec(Instruction* curr_inst, JobNode job_list[4])
 {
     struct JobNode* job_pointer;
     char to_exec[MAX_LINE_LENGHT];
@@ -164,14 +164,15 @@ int ExtComExec(Instruction* curr_inst, JobNode job_list[4])
     //error forking
     if (curr_pid<0)
     {
-        printf("error creating child process");
+        printf("error creating child process"); //TODO
         return 1;
     }
     
     //father process
     if (curr_pid!=0)
     {  
-        if (!curr_inst->is_backround)
+        printf("hw1shell: pid %d started\n", curr_pid);
+        if (curr_inst->is_backround==false)
         {
             //printf("Father -  I'm waiting for child pid %d to finish\n", curr_pid);
             int returnStatus;
@@ -183,7 +184,7 @@ int ExtComExec(Instruction* curr_inst, JobNode job_list[4])
             //printf("Father - no need to wait, we continue\n");
             for (int i=0 ;i<4;i++)
             {
-                if (!job_list[i].is_active)
+                if (job_list[i].is_active==false)
                 {
                     job_list[i].pid=curr_pid;
                     strcpy(job_list[i].raw_instruction,to_exec);
@@ -198,7 +199,6 @@ int ExtComExec(Instruction* curr_inst, JobNode job_list[4])
     else
     {
         curr_pid=getpid();
-        printf("hw1shell: pid %d started\n", curr_pid);
         execv(to_exec, args);
         //printf("Child - I finished! now I'll die\n"); //shouldn't be seen
     }
@@ -223,7 +223,7 @@ void execute_input(Instruction *instruction, JobNode jobs[4])
         }
         else
         {
-            int exec_status=ExtComExec(instruction,jobs);
+            int exec_status=ext_com_exec(instruction,jobs);
         }
     }
 }
@@ -235,6 +235,10 @@ bool allocate_jobs(JobNode* jobs, int buf_size)
     jobs[1].raw_instruction = (char *)malloc(buf_size);
     jobs[2].raw_instruction = (char *)malloc(buf_size);
     jobs[3].raw_instruction = (char *)malloc(buf_size);
+    jobs[0].is_active = false;
+    jobs[1].is_active = false;
+    jobs[2].is_active = false;
+    jobs[3].is_active = false;
     if (jobs[0].raw_instruction == NULL || jobs[1].raw_instruction == NULL || jobs[2].raw_instruction == NULL || jobs[3].raw_instruction == NULL)
     {
         return false;
@@ -258,7 +262,7 @@ int main(int argc, char *argv[])
     char *input_buffer;
     int job_allocation_status;  // TODO - RAZ allocate space when running a new job for raw_instruction
     JobNode jobs[4];
-
+    int alive_jobs;
     input_buffer = (char *)malloc(buf_size);
     curr_instruction.raw_instruction = (char *)malloc(buf_size);
     curr_instruction.directory = (char *)malloc(buf_size);
@@ -274,6 +278,7 @@ int main(int argc, char *argv[])
     {
         char* tmp_input_buffer = input_buffer;
         printf("hw1shell$ ");
+        fflush(stdin);
         getline(&tmp_input_buffer, &buf_size, stdin);
         if (!strcmp(tmp_input_buffer, "\n"))
         {
@@ -283,6 +288,7 @@ int main(int argc, char *argv[])
         parse_input(&curr_instruction, &tmp_input_buffer);
         if (curr_instruction.operation == EXIT) break;
         execute_input(&curr_instruction, jobs);
+        //alive_jobs=check_alive_jobs(jobs);
     }
 
     kill_all_jobs(&jobs);

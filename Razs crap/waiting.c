@@ -7,7 +7,7 @@
 int main()
 {
     printf("Waiting - running 15 sec timer\n");
-    sleep(15);
+    sleep(120);
     printf("Waiting - finished\n");
     sleep(1);
     return 0;
