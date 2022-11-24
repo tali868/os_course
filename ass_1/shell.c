@@ -12,16 +12,18 @@ int check_alive_jobs(JobNode jobs[4])
     int curr_status;
     JobNode curr_job;
     int alive_jobs = 0;
+    pid_t curr_pid;
 
     for (int i = 0; i < 4; i+=1) {
         curr_job = jobs[i];
         if (curr_job.is_active == true)
         {
             alive_jobs++;
-            curr_status = waitpid(curr_job.pid, &status, WNOHANG);
+            curr_pid=curr_job.pid;
+            curr_status = waitpid(curr_pid, &status, WNOHANG);
             if (curr_status == 0)
             {
-                printd("hw1shell$ pid %ld finished\n", jobs[i].pid);
+                printf("hw1shell$ pid %ld finished\n", jobs[i].pid);
                 jobs[i].is_active = false;
                 alive_jobs--;
             }
@@ -142,6 +144,64 @@ void cd(char* directory)
         printf("hw1shell$ invalid command\n");
 }
 
+//running external commands!
+int ExtComExec(Instruction* curr_inst, JobNode job_list[4])
+{
+    struct JobNode* job_pointer;
+    char to_exec[MAX_LINE_LENGHT];
+    strcpy(to_exec,curr_inst->raw_instruction);
+    char path[MAX_LINE_LENGHT];
+    getcwd(path, MAX_LINE_LENGHT);
+    pid_t curr_pid;
+    pid_t dead_child;
+
+    char *args[]= {&to_exec,"-lh", path, NULL};
+    curr_pid=fork();
+
+    //error forking
+    if (curr_pid<0)
+    {
+        printf("error creating child process");
+        return 1;
+    }
+    
+    //father process
+    if (curr_pid!=0)
+    {  
+        if (!curr_inst->is_backround)
+        {
+            //printf("Father -  I'm waiting for child pid %d to finish\n", curr_pid);
+            int returnStatus;
+            dead_child=waitpid(curr_pid, &returnStatus, 0);
+            //printf("Father - child pid - %d finished!\n", dead_child);
+        }
+        else
+        {
+            //printf("Father - no need to wait, we continue\n");
+            for (int i=0 ;i<4;i++)
+            {
+                if (!job_list[i].is_active)
+                {
+                    job_list[i].pid=curr_pid;
+                    strcpy(job_list[i].raw_instruction,to_exec);
+                    job_list[i].is_active=true;
+                    break;
+                }
+            }
+        }
+    }
+
+    //child process
+    else
+    {
+        curr_pid=getpid();
+        printf("hw1shell: pid %d started\n", curr_pid);
+        execv(to_exec, args);
+        //printf("Child - I finished! now I'll die\n"); //shouldn't be seen
+    }
+    return 0;
+}
+
 void execute_input(Instruction *instruction, JobNode jobs[4])
 {
     int alive_jobs = check_alive_jobs(jobs);
@@ -154,13 +214,13 @@ void execute_input(Instruction *instruction, JobNode jobs[4])
         jobs_func(jobs);
     }
     else {  // exit is handeled prior to this
-        if (alive_jobs == 4)
+        if (alive_jobs == 4 && !instruction->is_backround)
         {
             printf("hw1shell$ too many background commands running\n");
         }
         else
         {
-            // fork
+            int exec_status=ExtComExec(instruction,jobs);
         }
     }
 }
@@ -189,6 +249,7 @@ void free_jobs(JobNode* jobs)
 
 int main(int argc, char *argv[])
 {
+    fflush(stdin);
     Instruction curr_instruction;
     size_t buf_size = MAX_LINE_LENGHT;
     char *input_buffer;
