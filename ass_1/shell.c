@@ -35,12 +35,15 @@ int check_alive_jobs(JobNode jobs[4])
 void kill_all_jobs(JobNode jobs[4])
 {
     JobNode curr_job;   
+    int kill_status;
+    pid_t curr_pid;
     check_alive_jobs(jobs);
     for (int i = 0; i < 4; i+=1) {
         curr_job = jobs[i];
         if (curr_job.is_active == true)
         {
-            // kill(pid)
+            curr_pid=curr_job.pid;
+            kill_status=kill (curr_pid, SIGSEGV);
         }
     }
 }
