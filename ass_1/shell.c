@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
+#include <errno.h>
 #include "shell.h"
 
 int check_alive_jobs(JobNode jobs[4])
@@ -19,9 +20,14 @@ int check_alive_jobs(JobNode jobs[4])
         if (curr_job.is_active == true)
         {
             alive_jobs++;
-            curr_pid=curr_job.pid;
+            curr_pid = curr_job.pid;
             curr_status = waitpid(curr_pid, &status, WNOHANG);
-            if (curr_status == 0)
+            if (curr_status == -1)
+            {
+                printf("hw1shell: %s failed, errno is %d\n", "waitpid", errno);
+                exit(1);
+            }
+            if (curr_status != 0)
             {
                 printf("hw1shell: pid %ld finished\n", jobs[i].pid);
                 jobs[i].is_active = false;
@@ -42,12 +48,16 @@ void kill_all_jobs(JobNode jobs[4])
         curr_job = jobs[i];
         if (curr_job.is_active == true)
         {
-            curr_pid=curr_job.pid;
-            kill_status=kill (curr_pid, SIGSEGV);
+            curr_pid = curr_job.pid;
+            kill_status = kill(curr_pid, SIGKILL);
+            if (kill_status == -1)
+            {
+                printf("hw1shell: %s failed, errno is %d\n", "kill", errno);
+                return;
+            }
         }
     }
 }
-
 
 void trim_sides(char** user_input)
 {
@@ -68,18 +78,16 @@ void parse_backround(Instruction *instruction, char* user_input)
     int len = strlen(user_input) - 1;
     int i;
     instruction->is_backround = false;
-    for (i = len; i > 0; i-=1) {
+    for (i = 0; i <= len; i++) {
         if (user_input[i] == '&')
         {
             amp_ix = i;
-            strncpy(instruction->raw_instruction, user_input, i);
+            user_input[i] = 0;
+            strcpy(instruction->raw_instruction, user_input);
+            instruction->operation = INST;
+            instruction->is_backround = true;
+            
         }
-    }
-    if (amp_ix != NULL)  // found &
-    {
-        trim_sides(&(instruction->raw_instruction));
-        instruction->operation = INST;
-        instruction->is_backround = true;
     }
 }
 
@@ -138,7 +146,6 @@ void jobs_func(JobNode jobs[4])
     }
 }
 
-
 void cd(char* directory)
 {
     int is_not_successful;
@@ -147,19 +154,171 @@ void cd(char* directory)
         printf("hw1shell: invalid command\n");
 }
 
+JobNode* get_available_job(JobNode* jobs)
+{
+    JobNode* curr_job;
+    for (int i = 0; i < 4; i+=1) {
+        curr_job = &(jobs[i]);
+        if (curr_job->is_active == false)
+        {
+            return curr_job;
+        }
+    }
+    return NULL;
+}
+
+char** split_instruction(char* raw_instruction)
+{
+    char** args;
+
+
+}
+
+void foreground_external_command(Instruction* curr_inst)
+{
+    pid_t child_pid;
+    int exec_status;
+    char path[MAX_LINE_LENGHT];
+    getcwd(path, MAX_LINE_LENGHT);
+
+    child_pid = fork();
+    if (child_pid < 0)
+    {
+        printf("hw1shell: %s failed, errno is %d\n", "exec", errno);
+        return;
+    }
+
+    if (child_pid == 0)  // we are in child
+    {
+        char *args[MAX_LINE_LENGHT] = {0};
+        int i = 0;
+        args[i] = strtok(curr_inst->raw_instruction, " ");
+        while (args[i] != NULL)
+        {
+            args[++i] = strtok(NULL, " ");
+        }
+        exec_status = execvp(args[0], args);
+
+        if (exec_status == -1)
+        {
+            if (errno == 2)
+            {
+                printf("hw1shell: invalid command\n");
+                exit(1);
+            }
+            else
+            {
+                printf("hw1shell: %s failed, errno is %d\n", "execvp", errno);
+                exit(1);
+            }
+        }
+    }
+    else
+    {
+        int child_status;
+        if (waitpid(child_pid, &child_status, 0) == -1) {
+            printf("hw1shell: %s failed, errno is %d\n", "waitpid", errno);
+            return;
+        }
+    }
+
+
+}
+
+void background_external_command(Instruction* curr_inst, JobNode jobs[4])
+{
+    JobNode* available_job = get_available_job(jobs);
+    pid_t child_pid;
+    int exec_status;
+    char path[MAX_LINE_LENGHT];
+    getcwd(path, MAX_LINE_LENGHT);
+
+    if (available_job == NULL)
+    {
+        printf("BAD!");
+        exit(1);
+    }
+
+    child_pid = fork();
+    if (child_pid < 0)
+    {
+        printf("hw1shell: %s failed, errno is %d\n", "exec", errno);
+        return;
+    }
+
+    if (child_pid == 0)  // we are in child
+    {
+        char *args[MAX_LINE_LENGHT] = {0};
+        int i = 0;
+        args[i] = strtok(curr_inst->raw_instruction, " ");
+        while (args[i] != NULL)
+        {
+            args[++i] = strtok(NULL, " ");
+        }
+        exec_status = execvp(args[0], args);
+
+        if (exec_status == -1)
+        {
+            if (errno == 3)  // TODO
+            {
+                printf("hw1shell: invalid command\n");
+                exit(1);
+            }
+            else
+            {
+                printf("hw1shell: %s failed, errno is %d\n", "execvp", errno);
+                exit(1);
+            }
+        }
+    }
+    else
+    {
+        available_job->is_active = true;
+        strcpy(available_job->raw_instruction, curr_inst->raw_instruction);
+        available_job->pid = child_pid;
+        printf("hw1shell: pid %d started\n", child_pid);
+    }
+
+}
+
+void external_command_execute(Instruction* curr_inst, JobNode jobs[4])
+{
+    if (curr_inst->is_backround == true)
+    {
+        background_external_command(curr_inst, jobs);
+    }
+    else
+    {
+        foreground_external_command(curr_inst);
+    }
+    
+}
+
 //running external commands!
 int ext_com_exec(Instruction* curr_inst, JobNode job_list[4])
 {
     struct JobNode* job_pointer;
     char to_exec[MAX_LINE_LENGHT];
-    strcpy(to_exec,curr_inst->raw_instruction);
+    strcpy(to_exec, curr_inst->raw_instruction);
     char path[MAX_LINE_LENGHT];
     getcwd(path, MAX_LINE_LENGHT);
     pid_t curr_pid;
     pid_t dead_child;
 
-    char *args[]= {&to_exec,"-lh", path, NULL};
-    curr_pid=fork();
+    // check free job
+    for (int i=0 ;i<4;i++)
+    {
+        if (job_list[i].is_active == false)
+        {
+            job_list[i].pid = curr_pid;
+            strcpy(job_list[i].raw_instruction, to_exec);
+            job_list[i].is_active = true;
+            break;
+        }
+    }
+
+    /***char *args[] = {&to_exec,"-lh", path, NULL};
+    curr_pid = fork();
 
     //error forking
     if (curr_pid<0)
@@ -174,9 +333,9 @@ int ext_com_exec(Instruction* curr_inst, JobNode job_list[4])
         printf("hw1shell: pid %d started\n", curr_pid);
         if (curr_inst->is_backround==false)
         {
-            //printf("Father -  I'm waiting for child pid %d to finish\n", curr_pid);
+            printf("Father -  I'm waiting for child pid %d to finish\n", curr_pid);
             int returnStatus;
-            dead_child=waitpid(curr_pid, &returnStatus, 0);
+            dead_child = waitpid(curr_pid, &returnStatus, 0);
             //printf("Father - child pid - %d finished!\n", dead_child);
         }
         else
@@ -184,11 +343,11 @@ int ext_com_exec(Instruction* curr_inst, JobNode job_list[4])
             //printf("Father - no need to wait, we continue\n");
             for (int i=0 ;i<4;i++)
             {
-                if (job_list[i].is_active==false)
+                if (job_list[i].is_active == false)
                 {
-                    job_list[i].pid=curr_pid;
-                    strcpy(job_list[i].raw_instruction,to_exec);
-                    job_list[i].is_active=true;
+                    job_list[i].pid = curr_pid;
+                    strcpy(job_list[i].raw_instruction, to_exec);
+                    job_list[i].is_active = true;
                     break;
                 }
             }
@@ -202,7 +361,7 @@ int ext_com_exec(Instruction* curr_inst, JobNode job_list[4])
         execv(to_exec, args);
         //printf("Child - I finished! now I'll die\n"); //shouldn't be seen
     }
-    return 0;
+    return 0;****/
 }
 
 void execute_input(Instruction *instruction, JobNode jobs[4])
@@ -217,17 +376,17 @@ void execute_input(Instruction *instruction, JobNode jobs[4])
         jobs_func(jobs);
     }
     else {  // exit is handeled prior to this
-        if (alive_jobs == 4 && !instruction->is_backround)
+        if (alive_jobs == 4 && instruction->is_backround == true)
         {
             printf("hw1shell$ too many background commands running\n");
         }
         else
         {
-            int exec_status=ext_com_exec(instruction,jobs);
+            // int exec_status = ext_com_exec(instruction, jobs);
+            external_command_execute(instruction, jobs);
         }
     }
 }
-
 
 bool allocate_jobs(JobNode* jobs, int buf_size)
 {
@@ -277,6 +436,7 @@ int main(int argc, char *argv[])
     while (1)
     {
         char* tmp_input_buffer = input_buffer;
+        check_alive_jobs(jobs);
         printf("hw1shell$ ");
         fflush(stdin);
         getline(&tmp_input_buffer, &buf_size, stdin);
@@ -288,7 +448,6 @@ int main(int argc, char *argv[])
         parse_input(&curr_instruction, &tmp_input_buffer);
         if (curr_instruction.operation == EXIT) break;
         execute_input(&curr_instruction, jobs);
-        //alive_jobs=check_alive_jobs(jobs);
     }
 
     kill_all_jobs(&jobs);
