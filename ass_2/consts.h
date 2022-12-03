@@ -9,4 +9,6 @@ typedef int bool;
 #define MAX_FILE_COUNTER 100
 #define MAX_COMMND_FILE_NAME 200
 
+#define TREAD_FILE_NAME_TEMPLATE "thread%d.txt"
+
 #endif
