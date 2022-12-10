@@ -1,2 +1,2 @@
-msleep 4;
-increment 2;
+worker repeat 5; increment 5; msleep 1
+worker repeat 5
