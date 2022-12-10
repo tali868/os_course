@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include "consts.h"
 #include "structs.h"
 #include "queue.h"
@@ -61,6 +62,8 @@ int main(int argc, char *argv[])
     char file_num_name[13];
     char buffer[MAX_LINE_LENGTH];
     size_t buffer_len = MAX_LINE_LENGTH;
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
 
     int blah = -1;
     
@@ -78,11 +81,11 @@ int main(int argc, char *argv[])
     for (int i=0; i<num_counters; i++)
     {
         count_files[i] = (char*) malloc(sizeof(char*) * 13);
-        snprintf(file_num_name, 13, TREAD_FILE_NAME_TEMPLATE, i);
+        snprintf(file_num_name, 13, COUNT_FILE_NAME_TEMPLATE, i);
         temp_count_file = fopen(file_num_name, "w");
         if (temp_count_file == NULL)
 	    {
-            printf("%s failed, errno is %d\n", "waitpid", errno);
+            printf("%s failed, errno is %d\n", "fopen", errno);
 		    printf("Counter file isn't created. Please check and run again.");
 		    exit(1);
 	    }
@@ -104,10 +107,12 @@ int main(int argc, char *argv[])
     thread_input->files_lock = files_mutex;
     thread_input->queue_lock = queue_mutex;
     thread_input->q = queue;
+    thread_input->time_of_run = start;
 
     // create the threads with the function to wait for queue
     for (int i = 0; i < num_threads; i++) {
         thread_input->is_busy = (is_busy + i);
+        thread_input->thread_id = i;
         pthread_create(&threads[i], NULL, read_and_execute, (void*)thread_input);
     }
 
@@ -126,13 +131,6 @@ int main(int argc, char *argv[])
         }
     }
     wait(num_threads, is_busy);
-
-    // close all files
-    fclose(commands_file);
-    for (int i=0; i<num_counters; i++)
-    {
-        fclose(count_files[i]);
-    }
 
     free(count_files);
     free_queue(queue);
