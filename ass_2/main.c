@@ -57,32 +57,39 @@ int main(int argc, char *argv[])
     int i;
     int num_threads = atoi(argv[2]);
     int num_counters = atoi(argv[3]);
+    int* is_busy[MAX_THREAD_COUNT] = {0};
     char file_num_name[13];
     char buffer[MAX_LINE_LENGTH];
     size_t buffer_len = MAX_LINE_LENGTH;
+
+    int blah = -1;
     
     FILE* commands_file;
-    FILE* count_files[MAX_FILE_COUNTER];
+    FILE* temp_count_file;
+    char** count_files = (char*) malloc(sizeof(char*) * MAX_NUM_FILES);
     Queue *queue = create_queue();
     
     pthread_t threads[MAX_NUM_THREADS];
     pthread_mutex_t queue_mutex;
-    pthread_mutex_t files_mutex[MAX_FILE_COUNTER];
+    pthread_mutex_t files_mutex;
 
     struct args *thread_input = (struct args *)malloc(sizeof(struct args));
 
     for (int i=0; i<num_counters; i++)
     {
+        count_files[i] = (char*) malloc(sizeof(char*) * 13);
         snprintf(file_num_name, 13, TREAD_FILE_NAME_TEMPLATE, i);
-        count_files[i] = fopen(file_num_name, "w");
-        if (count_files[i] == NULL)
+        temp_count_file = fopen(file_num_name, "w");
+        if (temp_count_file == NULL)
 	    {
             printf("%s failed, errno is %d\n", "waitpid", errno);
 		    printf("Counter file isn't created. Please check and run again.");
 		    exit(1);
 	    }
-        fprintf(count_files[i], "0");
-        fflush(count_files[i]);
+        fprintf(temp_count_file, "0");
+        fflush(temp_count_file);
+        fclose(temp_count_file);
+        strcpy(count_files[i], file_num_name);
     }
 
     commands_file = fopen(argv[1], "r");
@@ -98,22 +105,11 @@ int main(int argc, char *argv[])
     thread_input->queue_lock = queue_mutex;
     thread_input->q = queue;
 
-    // ---------------- //
     // create the threads with the function to wait for queue
-    // for (int i = 0; i < num_threads; i++) {
-    //     pthread_create(&threads[i], NULL, read_and_execute, (void*)thread_input);
-    // }
-    // ---------------- //
-    // char demi_line[48] = "worker msleep 1; repeat 2; increment 5; msleep 2";
-    // int is_work = is_worker(demi_line);
-    // if (is_work)
-    // {
-    //     push_worker_to_queue(queue, demi_line);
-    //     duplicate_on_repeat(queue->head);
-    //     char* commands = queue->head->data;
-    //     dequeue(queue);  // Pop the command from the queue
-    // }
-    // ---------------- //
+    for (int i = 0; i < num_threads; i++) {
+        thread_input->is_busy = (is_busy + i);
+        pthread_create(&threads[i], NULL, read_and_execute, (void*)thread_input);
+    }
 
     while ((fgets(buffer, buffer_len, commands_file)) != NULL) {
         if (buffer[strlen(buffer) - 1] == '\n')
@@ -126,9 +122,10 @@ int main(int argc, char *argv[])
         }
         else
         {
-            execute_dispatcher(buffer + 11, threads, queue);
+            execute_dispatcher(buffer + 11, threads, queue, is_busy);
         }
     }
+    wait(num_threads, is_busy);
 
     // close all files
     fclose(commands_file);
@@ -137,6 +134,7 @@ int main(int argc, char *argv[])
         fclose(count_files[i]);
     }
 
+    free(count_files);
     free_queue(queue);
 
     exit(0);
