@@ -49,13 +49,22 @@ void dequeue(Queue *q)
 }
 
 
-int is_worker(char *line){
+bool is_worker(char *line){
 	char *worker = "worker";
 	// Check if the first 5 characters of the line are "worker"
 	if(strncmp(line, worker, 5) == 0){
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
+}
+
+bool is_dispatcher(char *line){
+	char *dispatcher = "dispatcher";
+	// Check if the first 9 characters of the line are "dispatcher"
+	if(strncmp(line, dispatcher, 9) == 0){
+		return true;
+	}
+	return false;
 }
 
 
@@ -69,10 +78,25 @@ void push_worker_to_queue(Queue *q, char *line){
 	for(i = 7; i < len; i++){
 		data[i - 7] = line[i];
 	}
-	data[i-6] = '\0';
+	data[i-7] = '\0';  // TODO - bugggg?
 
 	// Push the data to the queue
 	enqueue(q, data);
+}
+
+void execute_dispatcher(char *command, pthread_t* threads, Queue *q) {
+    if (strcmp(command, "wait") == 0) {
+        while (q->head != NULL)  // TODO: not sure that this is what has to be done!!!
+        {
+            sleep(1);
+        }
+    }
+    else  // sleep is left as an option
+    {
+        int len = strlen(command);
+        int num = (int) (command + len - 2);
+        sleep(num);
+    }
 }
 
 void duplicate_on_repeat(QueueNode* q)
@@ -114,28 +138,33 @@ void duplicate_on_repeat(QueueNode* q)
     }
 }
 
-void run_command_line(char* command_line, pthread_mutex_t* files_lock, FILE* count_files)
+void run_command_line(char* command_line, pthread_mutex_t* files_lock, FILE** count_files)
 {
+    int i = 0;
     int len = strlen(command_line);
     int num = (int) (command_line + len - 2);
     if (strstr(command_line, "msleep") != NULL) {
-        // TODO
+        sleep(num);
     }
-    if (strstr(command_line, "increment") != NULL) {
-        // TODO - with lock on file!
-    }
-    if (strstr(command_line, "decrement") != NULL) {
-        // TODO - with lock on file!
-    }
+    else{
+        fscanf(*(count_files + num), "%d", &i);
+        if (strstr(command_line, "increment") != NULL) {
+            i++;
+        }
+        if (strstr(command_line, "decrement") != NULL) {
+            i--;
+        }
+        fprintf(*(count_files + num),"%d", i);
+        fflush(*(count_files + num));
     sleep(3);
+    }
 }
-
 
 void* read_and_execute(void *input) {
     Queue *q = ((struct args*)input)->q;
     pthread_mutex_t queue_lock = ((struct args*)input)->queue_lock;
     pthread_mutex_t* files_lock = ((struct args*)input)->files_lock;
-    FILE* count_files = ((struct args*)input)->count_files;
+    FILE** count_files = ((struct args*)input)->count_files;
 
     while (true) {
         char* command;
@@ -158,7 +187,7 @@ void* read_and_execute(void *input) {
             command = strtok(NULL, "; ");
         }
         // Free the memory of the command
-        free(command);
+        free(command);  // TODO - does this needs to be done?
     }
 }
 
@@ -184,12 +213,16 @@ int main(int argc, char *argv[])
     int num_counters = atoi(argv[3]);
     char file_num_name[13];
     char line[MAX_LINE_LENGTH];
+    size_t len = MAX_LINE_LENGTH;
+    
     FILE* commands_file;
     FILE* count_files[MAX_FILE_COUNTER];
     Queue *queue = create_queue();
+    
     pthread_t threads[MAX_NUM_THREADS];
     pthread_mutex_t queue_mutex;
     pthread_mutex_t files_mutex[MAX_FILE_COUNTER];
+
     struct args *thread_input = (struct args *)malloc(sizeof(struct args));
 
     for (int i=0; i<num_counters; i++)
@@ -225,16 +258,27 @@ int main(int argc, char *argv[])
     //     pthread_create(&threads[i], NULL, read_and_execute, (void*)thread_input);
     // }
     // ---------------- //
-    char demi_line[48] = "worker msleep 1; repeat 2; increment 5; msleep 2";
-    int is_work = is_worker(demi_line);
-    if (is_work)
-    {
-        push_worker_to_queue(queue, demi_line);
-        duplicate_on_repeat(queue->head);
-        char* commands = queue->head->data;
-        dequeue(queue);  // Pop the command from the queue
-    }
+    // char demi_line[48] = "worker msleep 1; repeat 2; increment 5; msleep 2";
+    // int is_work = is_worker(demi_line);
+    // if (is_work)
+    // {
+    //     push_worker_to_queue(queue, demi_line);
+    //     duplicate_on_repeat(queue->head);
+    //     char* commands = queue->head->data;
+    //     dequeue(queue);  // Pop the command from the queue
+    // }
     // ---------------- //
+
+    while ((getline(&line, &len, commands_file)) != -1) {
+        if (is_worker(line) == true)
+        {
+            push_worker_to_queue(queue, line);
+        }
+        else
+        {
+            execute_dispatcher(line + 10, threads, queue);
+        }
+    }
 
 
     

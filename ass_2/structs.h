@@ -20,7 +20,7 @@ struct args {
     Queue *q;
     pthread_mutex_t queue_lock;
     pthread_mutex_t* files_lock;
-    FILE* count_files;
+    FILE** count_files;
 };
 
 #endif
