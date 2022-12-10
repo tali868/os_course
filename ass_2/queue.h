@@ -7,5 +7,6 @@
 Queue* create_queue();
 void enqueue(Queue *q, char *data);
 void dequeue(Queue *q);
+void free_queue(Queue *q);
 
 #endif

@@ -134,20 +134,6 @@ void* read_and_execute(void *input) {
     }
 }
 
-//Function to free queue
-void free_queue(Queue *q)
-{
-    QueueNode *temp;
-    while (q->head != NULL)
-    {
-        temp = q->head;
-        q->head = q->head->next;
-        free(temp);
-    }
-    q->tail = NULL;
-    free(q);
-}
-
 
 int main(int argc, char *argv[])
 {
