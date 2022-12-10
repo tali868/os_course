@@ -8,7 +8,7 @@ void wait(int num_threads, int* is_busy)
     int should_wait = 1, running_threads=0;
     while (should_wait == 1)  // while we are not done, we can't end the program
     {
-        for (int i = 0; i < num_threads; i++) {
+        for (int i = 0; i < 100; i++) {
             if(*(is_busy + i) == 1)
             {
                 running_threads++;

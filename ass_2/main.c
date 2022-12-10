@@ -126,14 +126,7 @@ int main(int argc, char *argv[])
         }
     }
     wait(num_threads, is_busy);
-
-    // close all files
-    fclose(commands_file);
-    for (int i=0; i<num_counters; i++)
-    {
-        fclose(count_files[i]);
-    }
-
+    sleep(30);
     free(count_files);
     free_queue(queue);
 
