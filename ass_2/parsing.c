@@ -1,4 +1,5 @@
 #include "consts.h"
+#include "parsing.h"
 
 bool is_worker(char *line){
 	char *worker = "worker";

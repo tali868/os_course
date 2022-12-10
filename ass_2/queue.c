@@ -57,3 +57,19 @@ void free_queue(Queue *q)
     q->tail = NULL;
     free(q);
 }
+
+// Function to push the rest of the line to a queue
+void push_worker_to_queue(Queue *q, char *line){
+	int i;
+	int len = strlen(line);
+	char *data = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
+
+	// Copy the rest of the line to the data
+	for(i = 7; i < len; i++){
+		data[i - 7] = line[i];
+	}
+	data[i-7] = '\0';  // TODO - bugggg?
+
+	// Push the data to the queue
+	enqueue(q, data);
+}
