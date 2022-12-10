@@ -94,7 +94,7 @@ void execute_dispatcher(char *command, pthread_t* threads, Queue *q) {
     else  // sleep is left as an option
     {
         int len = strlen(command);
-        int num = (int) (command + len - 2);
+        int num = atoi(command + len - 1);
         sleep(num);
     }
 }
@@ -212,8 +212,8 @@ int main(int argc, char *argv[])
     int num_threads = atoi(argv[2]);
     int num_counters = atoi(argv[3]);
     char file_num_name[13];
-    char line[MAX_LINE_LENGTH];
-    size_t len = MAX_LINE_LENGTH;
+    char buffer[MAX_LINE_LENGTH];
+    size_t buffer_len = MAX_LINE_LENGTH;
     
     FILE* commands_file;
     FILE* count_files[MAX_FILE_COUNTER];
@@ -269,19 +269,20 @@ int main(int argc, char *argv[])
     // }
     // ---------------- //
 
-    while ((getline(&line, &len, commands_file)) != -1) {
-        if (is_worker(line) == true)
+    while ((fgets(buffer, buffer_len, commands_file)) != NULL) {
+        if (buffer[strlen(buffer) - 1] == '\n')
         {
-            push_worker_to_queue(queue, line);
+            buffer[strlen(buffer) - 1] = 0;
+        }
+        if (is_worker(buffer) == true)
+        {
+            push_worker_to_queue(queue, buffer);
         }
         else
         {
-            execute_dispatcher(line + 10, threads, queue);
+            execute_dispatcher(buffer + 11, threads, queue);
         }
     }
-
-
-    
 
     // close all files
     fclose(commands_file);
