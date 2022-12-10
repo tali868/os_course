@@ -4,68 +4,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include "consts.h"
 #include "structs.h"
-
-Queue* create_queue(){
-	Queue *q = (Queue*)malloc(sizeof(Queue));
-	q->head = NULL;
-	q->tail = NULL;
-	q->size = 0;
-	return q;
-}
-
-// Function to add an item to the queue
-void enqueue(Queue *q, char *data){
-	// Create a new node
-	QueueNode *temp = (QueueNode*) malloc(sizeof(QueueNode));
-    QueueNode *p;
-    temp->data = data;
-	temp->next = NULL;
-
-	p = q->head;
-    if (p == NULL)
-    {
-        q->head = temp;
-        return;
-    }
-    while (p->next)
-        p = p->next;
-    p->next = temp;
-}
-
-
-void dequeue(Queue *q)
-{
-    if (q->head == NULL)
-    {
-        printf("Queue is Empty");  // TODO
-    }
-    QueueNode *temp = q->head;
-    q->head = q->head->next;
-    if (q->head == NULL)  // TODO
-       q->tail = NULL;
-    free(temp);
-}
-
-
-bool is_worker(char *line){
-	char *worker = "worker";
-	// Check if the first 5 characters of the line are "worker"
-	if(strncmp(line, worker, 5) == 0){
-		return true;
-	}
-	return false;
-}
-
-bool is_dispatcher(char *line){
-	char *dispatcher = "dispatcher";
-	// Check if the first 9 characters of the line are "dispatcher"
-	if(strncmp(line, dispatcher, 9) == 0){
-		return true;
-	}
-	return false;
-}
+#include "queue.h"
+#include "parsing.h"
 
 
 // Function to push the rest of the line to a queue
