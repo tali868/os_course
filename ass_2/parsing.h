@@ -5,5 +5,6 @@
 
 bool is_worker(char *line);
 bool is_dispatcher(char *line);
+char *mystrtok(char *str, char *delimiters);
 
 #endif

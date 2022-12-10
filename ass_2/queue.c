@@ -41,6 +41,7 @@ void dequeue(Queue *q)
     q->head = q->head->next;
     if (q->head == NULL)  // TODO
        q->tail = NULL;
+    free(temp->data);
     free(temp);
 }
 

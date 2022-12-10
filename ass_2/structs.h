@@ -22,8 +22,9 @@ typedef struct Queue{
 struct args {
     Queue *q;
     pthread_mutex_t queue_lock;
-    pthread_mutex_t* files_lock;
-    FILE** count_files;
+    pthread_mutex_t files_lock;
+    char** count_files;
+    int* is_busy;
 };
 
 #endif
