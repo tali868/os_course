@@ -4,100 +4,13 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include "consts.h"
 #include "structs.h"
+#include "queue.h"
+#include "parsing.h"
+#include "exec_functions.h"
 
-Queue* create_queue(){
-	Queue *q = (Queue*)malloc(sizeof(Queue));
-	q->head = NULL;
-	q->tail = NULL;
-	q->size = 0;
-	return q;
-}
-
-// Function to add an item to the queue
-void enqueue(Queue *q, char *data){
-	// Create a new node
-	QueueNode *temp = (QueueNode*) malloc(sizeof(QueueNode));
-    QueueNode *p;
-    temp->data = data;
-	temp->next = NULL;
-
-	p = q->head;
-    if (p == NULL)
-    {
-        q->head = temp;
-        return;
-    }
-    while (p->next)
-        p = p->next;
-    p->next = temp;
-}
-
-
-void dequeue(Queue *q)
-{
-    if (q->head == NULL)
-    {
-        printf("Queue is Empty");  // TODO
-    }
-    QueueNode *temp = q->head;
-    q->head = q->head->next;
-    if (q->head == NULL)  // TODO
-       q->tail = NULL;
-    free(temp);
-}
-
-
-bool is_worker(char *line){
-	char *worker = "worker";
-	// Check if the first 5 characters of the line are "worker"
-	if(strncmp(line, worker, 5) == 0){
-		return true;
-	}
-	return false;
-}
-
-bool is_dispatcher(char *line){
-	char *dispatcher = "dispatcher";
-	// Check if the first 9 characters of the line are "dispatcher"
-	if(strncmp(line, dispatcher, 9) == 0){
-		return true;
-	}
-	return false;
-}
-
-
-// Function to push the rest of the line to a queue
-void push_worker_to_queue(Queue *q, char *line){
-	int i;
-	int len = strlen(line);
-	char *data = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
-
-	// Copy the rest of the line to the data
-	for(i = 7; i < len; i++){
-		data[i - 7] = line[i];
-	}
-	data[i-7] = '\0';  // TODO - bugggg?
-
-	// Push the data to the queue
-	enqueue(q, data);
-}
-
-void execute_dispatcher(char *command, pthread_t* threads, Queue *q) {
-    if (strcmp(command, "wait") == 0) {
-        while (q->head != NULL)  // TODO: not sure that this is what has to be done!!!
-        {
-            sleep(1);
-        }
-    }
-    else  // sleep is left as an option
-    {
-        int len = strlen(command);
-        int num = atoi(command + len - 1);
-        sleep(num);
-    }
-}
 
 void duplicate_on_repeat(QueueNode* q)
 {
@@ -136,73 +49,6 @@ void duplicate_on_repeat(QueueNode* q)
             break;
         }
     }
-}
-
-void run_command_line(char* command_line, pthread_mutex_t* files_lock, FILE** count_files)
-{
-    int i = 0;
-    int len = strlen(command_line);
-    int num = (int) (command_line + len - 2);
-    if (strstr(command_line, "msleep") != NULL) {
-        sleep(num);
-    }
-    else{
-        fscanf(*(count_files + num), "%d", &i);
-        if (strstr(command_line, "increment") != NULL) {
-            i++;
-        }
-        if (strstr(command_line, "decrement") != NULL) {
-            i--;
-        }
-        fprintf(*(count_files + num),"%d", i);
-        fflush(*(count_files + num));
-    sleep(3);
-    }
-}
-
-void* read_and_execute(void *input) {
-    Queue *q = ((struct args*)input)->q;
-    pthread_mutex_t queue_lock = ((struct args*)input)->queue_lock;
-    pthread_mutex_t* files_lock = ((struct args*)input)->files_lock;
-    FILE** count_files = ((struct args*)input)->count_files;
-
-    while (true) {
-        char* command;
-        pthread_mutex_lock(&queue_lock);
-
-        // Check if queue is empty
-        if (q->head == NULL) {
-            pthread_mutex_unlock(&queue_lock);
-            continue;
-        }
-        duplicate_on_repeat(q->head);
-        char* commands = q->head->data;
-        dequeue(q);  // Pop the command from the queue
-        pthread_mutex_unlock(&queue_lock);
-
-        command = strtok(commands, "; ");
-        while (command != NULL)
-        {
-            run_command_line(command, files_lock, count_files);
-            command = strtok(NULL, "; ");
-        }
-        // Free the memory of the command
-        free(command);  // TODO - does this needs to be done?
-    }
-}
-
-//Function to free queue
-void free_queue(Queue *q)
-{
-    QueueNode *temp;
-    while (q->head != NULL)
-    {
-        temp = q->head;
-        q->head = q->head->next;
-        free(temp);
-    }
-    q->tail = NULL;
-    free(q);
 }
 
 

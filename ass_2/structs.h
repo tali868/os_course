@@ -1,6 +1,9 @@
 #ifndef STRUCTS_H 
 #define STRUCTS_H
 
+#include <pthread.h>
+#include <sys/types.h>
+
 #define MAX_LINE_LENGTH 1024
 #define MAX_NUM_THREADS 4096
 #define MAX_NUM_FILES 100
