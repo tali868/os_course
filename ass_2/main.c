@@ -5,12 +5,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include "consts.h"
 #include "structs.h"
 #include "queue.h"
 #include "parsing.h"
 #include "exec_functions.h"
-
 
 void duplicate_on_repeat(QueueNode* q)
 {
@@ -45,10 +45,80 @@ void duplicate_on_repeat(QueueNode* q)
                 }
             }
             free(q->data);
+            result[new_ix] = 0;
             q->data = result;
             break;
         }
     }
+}
+
+
+void get_running_times(long long int *total_running_times, struct args **all_args, int num_threads)
+{
+    for (int i = 0; i < num_threads; i++) 
+    {
+        *(total_running_times + i) = (all_args[i])->total_runtime;
+    }
+}
+
+
+long long sum_running_times(long long int *total_running_times, int num_threads)
+{
+    long long int sum = 0;
+    for (int i = 0; i < num_threads; i++) 
+    {
+        sum = sum + *(total_running_times + i);
+    }
+    return sum;
+}
+
+long long max_running_times(long long int *total_running_times, int num_threads)
+{
+    long long int max = 0, temp;
+    for (int i = 0; i < num_threads; i++) 
+    {
+        if (i == 0)
+        {
+            max = *(total_running_times);
+        }
+        else
+        {
+            temp = *(total_running_times + i);
+            if (temp > max)
+            {
+                max = temp;
+            }
+        }
+    }
+    return max;
+}
+
+long long min_running_times(long long int *total_running_times, int num_threads)
+{
+    long long int min = 0, temp;
+    for (int i = 0; i < num_threads; i++) 
+    {
+        if (i == 0)
+        {
+            min = *(total_running_times);
+        }
+        else
+        {
+            temp = *(total_running_times + i);
+            if (temp < min)
+            {
+                min = temp;
+            }
+        }
+    }
+    return min;
+}
+
+float avg_running_times(long long int *total_running_times, int num_threads)
+{
+    long long int sum = sum_running_times(total_running_times, num_threads);
+    float num_threads_f = (float) num_threads;
+    return (float)sum/num_threads_f;
 }
 
 
@@ -57,32 +127,37 @@ int main(int argc, char *argv[])
     int i;
     int num_threads = atoi(argv[2]);
     int num_counters = atoi(argv[3]);
+    int is_log_enabled = atoi(argv[4]);
     int* is_busy[MAX_THREAD_COUNT] = {0};
     char file_num_name[13];
     char buffer[MAX_LINE_LENGTH];
     size_t buffer_len = MAX_LINE_LENGTH;
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
 
     int blah = -1;
     
     FILE* commands_file;
     FILE* temp_count_file;
+    FILE* dispatcher_log_file;
+    FILE* stats_file;
     char** count_files = (char*) malloc(sizeof(char*) * MAX_NUM_FILES);
     Queue *queue = create_queue();
     
     pthread_t threads[MAX_NUM_THREADS];
-    pthread_mutex_t queue_mutex;
-    pthread_mutex_t files_mutex;
 
-    struct args *thread_input = (struct args *)malloc(sizeof(struct args));
+    // struct args *thread_input = (struct args *)malloc(sizeof(struct args));
+    struct args *all_args[MAX_NUM_THREADS];
+    long long int total_running_times[MAX_NUM_THREADS];
 
     for (int i=0; i<num_counters; i++)
     {
         count_files[i] = (char*) malloc(sizeof(char*) * 13);
-        snprintf(file_num_name, 13, TREAD_FILE_NAME_TEMPLATE, i);
+        snprintf(file_num_name, 13, COUNT_FILE_NAME_TEMPLATE, i);
         temp_count_file = fopen(file_num_name, "w");
         if (temp_count_file == NULL)
 	    {
-            printf("%s failed, errno is %d\n", "waitpid", errno);
+            printf("%s failed, errno is %d\n", "fopen", errno);
 		    printf("Counter file isn't created. Please check and run again.");
 		    exit(1);
 	    }
@@ -100,14 +175,18 @@ int main(int argc, char *argv[])
 		printf("Commands file doesn't open. Please check and run again.");
 		exit(1);
 	}
-    thread_input->count_files = count_files;
-    thread_input->files_lock = files_mutex;
-    thread_input->queue_lock = queue_mutex;
-    thread_input->q = queue;
+    
 
     // create the threads with the function to wait for queue
     for (int i = 0; i < num_threads; i++) {
+        struct args *thread_input = (struct args *)malloc(sizeof(struct args));
+        thread_input->count_files = count_files;
+        thread_input->q = queue;
         thread_input->is_busy = (is_busy + i);
+        thread_input->thread_id = i;
+        thread_input->time_of_run = start;
+        thread_input->is_log_enabled = is_log_enabled;
+        all_args[i] = thread_input;
         pthread_create(&threads[i], NULL, read_and_execute, (void*)thread_input);
     }
 
@@ -122,11 +201,34 @@ int main(int argc, char *argv[])
         }
         else
         {
+            gettimeofday(&stop, NULL);
+            dispatcher_log_file = fopen("dispatcher.txt", "w");
+            fprintf(dispatcher_log_file, "TIME %lld: START job %s\n", timedifference_msec(start, stop), buffer);
             execute_dispatcher(buffer + 11, threads, queue, is_busy);
+            gettimeofday(&stop, NULL);
+            fprintf(dispatcher_log_file, "TIME %lld: END job %s\n", timedifference_msec(start, stop), buffer);
+            fclose(dispatcher_log_file);
+
         }
     }
-    wait(num_threads, is_busy);
-    sleep(30);
+    wait(num_threads, is_busy, queue);
+    get_running_times(total_running_times, all_args, num_threads);
+
+    gettimeofday(&stop, NULL);
+    stats_file = fopen("stats.txt", "w");
+    fprintf(stats_file, "total running time: %lld milliseconds\n", timedifference_msec(start, stop));
+    fprintf(stats_file, "sum of jobs turnaround time: %lld milliseconds\n", sum_running_times(total_running_times, num_threads));
+    fprintf(stats_file, "min job turnaround time: %lld milliseconds\n", min_running_times(total_running_times, num_threads));
+    fprintf(stats_file, "average job turnaround time: %f milliseconds\n", avg_running_times(total_running_times, num_threads));
+    fprintf(stats_file, "max job turnaround time: %lld milliseconds\n", max_running_times(total_running_times, num_threads));
+    fclose(stats_file);
+    
+    
+    
+    for (int i = 0; i < num_threads; i++)
+    {
+        free(all_args[i]);
+    }
     free(count_files);
     free_queue(queue);
 
