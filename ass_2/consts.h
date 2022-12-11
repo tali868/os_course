@@ -10,6 +10,6 @@ typedef int bool;
 #define MAX_COMMND_FILE_NAME 200
 #define MAX_COMMND_LINE 1024
 
-#define TREAD_FILE_NAME_TEMPLATE "count%d.txt"  // TODO: contectenate with 2 num space!
+#define COUNT_FILE_NAME_TEMPLATE "count%d.txt"  // TODO: contectenate with 2 num space!
 
 #endif

@@ -59,10 +59,13 @@ int main(int argc, char *argv[])
     int i;
     int num_threads = atoi(argv[2]);
     int num_counters = atoi(argv[3]);
+    int is_log_enabled = atoi(argv[4]);
     int* is_busy[MAX_THREAD_COUNT] = {0};
     char file_num_name[13];
     char buffer[MAX_LINE_LENGTH];
     size_t buffer_len = MAX_LINE_LENGTH;
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
 
     int blah = -1;
     
@@ -79,11 +82,11 @@ int main(int argc, char *argv[])
     for (int i=0; i<num_counters; i++)
     {
         count_files[i] = (char*) malloc(sizeof(char*) * 13);
-        snprintf(file_num_name, 13, TREAD_FILE_NAME_TEMPLATE, i);
+        snprintf(file_num_name, 13, COUNT_FILE_NAME_TEMPLATE, i);
         temp_count_file = fopen(file_num_name, "w");
         if (temp_count_file == NULL)
 	    {
-            printf("%s failed, errno is %d\n", "waitpid", errno);
+            printf("%s failed, errno is %d\n", "fopen", errno);
 		    printf("Counter file isn't created. Please check and run again.");
 		    exit(1);
 	    }
@@ -111,6 +114,8 @@ int main(int argc, char *argv[])
         thread_input->q = queue;
         thread_input->is_busy = (is_busy + i);
         thread_input->thread_id = i;
+        thread_input->time_of_run = start;
+        thread_input->is_log_enabled = is_log_enabled;
         all_args[i] = thread_input;
         pthread_create(&threads[i], NULL, read_and_execute, (void*)thread_input);
     }

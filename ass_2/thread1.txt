@@ -1,0 +1,4 @@
+TIME 1: START job repeat 3; increment 2
+TIME 2: END job repeat 3; increment 2
+TIME 2: START job increment 1; decrement 3; repeat 3; decrement 3
+TIME 5: END job increment 1; decrement 3; repeat 3; decrement 3

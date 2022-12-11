@@ -26,6 +26,7 @@ struct args {
     struct timeval time_of_run;
     long long int* total_runtime;
     int thread_id;
+    int is_log_enabled;
 };
 
 #endif
