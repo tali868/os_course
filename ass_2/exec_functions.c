@@ -49,14 +49,15 @@ void* read_and_execute(void *input) {
         int* indexes[MAX_LINE_LENGTH];
         int k=0;
         int start_ix, end_ix;
-        *is_busy = 1;
         gettimeofday(&stop, NULL);
 
         pthread_mutex_lock(&queue_mutex);
         if (q->head == NULL) {  // Check if queue is empty
             pthread_mutex_unlock(&queue_mutex);
+            *is_busy = 0;
             continue;
         }
+        *is_busy = 1;
         char* command = (char*) malloc(12*sizeof(char));
         char* commands = (char*) malloc(6*MAX_LINE_LENGTH*sizeof(char));
         char* orig_commands = (char*) malloc(6*MAX_LINE_LENGTH*sizeof(char));

@@ -201,11 +201,17 @@ int main(int argc, char *argv[])
         }
         else
         {
+            gettimeofday(&stop, NULL);
+            dispatcher_log_file = fopen("dispatcher.txt", "w");
+            fprintf(dispatcher_log_file, "TIME %lld: START job %s\n", timedifference_msec(start, stop), buffer);
             execute_dispatcher(buffer + 11, threads, queue, is_busy);
+            gettimeofday(&stop, NULL);
+            fprintf(dispatcher_log_file, "TIME %lld: END job %s\n", timedifference_msec(start, stop), buffer);
+            fclose(dispatcher_log_file);
+
         }
     }
     wait(num_threads, is_busy, queue);
-    sleep(10);
     get_running_times(total_running_times, all_args, num_threads);
 
     gettimeofday(&stop, NULL);
