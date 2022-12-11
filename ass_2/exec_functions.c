@@ -11,7 +11,7 @@ long long timedifference_msec(struct timeval t0, struct timeval t1)
     return (((long long)t1.tv_sec - (long long)t0.tv_sec)*1000)+((t1.tv_usec - t0.tv_usec)/1000);
 }
 
-void wait(int num_threads, int** is_busy)
+void wait(int num_threads, int** is_busy, Queue *q)
 {
     int should_wait = 1, running_threads=0;
     while (should_wait == 1)  // while we are not done, we can't end the program
@@ -22,7 +22,7 @@ void wait(int num_threads, int** is_busy)
                 running_threads++;
             }
         }
-        if (running_threads == 0)  // All threads are finished now and the program can end
+        if (running_threads == 0 && q->head == NULL)  // All threads are finished now and the program can end
         {
             should_wait = 0;
         }
@@ -46,9 +46,6 @@ void* read_and_execute(void *input) {
     snprintf(thread_log_file_name, 13, "thread%d.txt", ((struct args*)input)->thread_id);
 
     while (1) {
-        char* command = (char*) malloc(12*sizeof(char));
-        char* commands = (char*) malloc(6*MAX_LINE_LENGTH*sizeof(char));
-        char* orig_commands = (char*) malloc(6*MAX_LINE_LENGTH*sizeof(char));
         int* indexes[MAX_LINE_LENGTH];
         int k=0;
         int start_ix, end_ix;
@@ -60,6 +57,9 @@ void* read_and_execute(void *input) {
             pthread_mutex_unlock(&queue_mutex);
             continue;
         }
+        char* command = (char*) malloc(12*sizeof(char));
+        char* commands = (char*) malloc(6*MAX_LINE_LENGTH*sizeof(char));
+        char* orig_commands = (char*) malloc(6*MAX_LINE_LENGTH*sizeof(char));
         memcpy(orig_commands, q->head->data, strlen(q->head->data));
         duplicate_on_repeat(q->head);
         memcpy(commands, q->head->data, strlen(q->head->data));
@@ -112,11 +112,11 @@ void* read_and_execute(void *input) {
         }
         
         gettimeofday(&stop, NULL);
-        total_runtime = timedifference_msec(start, stop);  // save runtime for statistics
+        ((struct args*)input)->total_runtime = timedifference_msec(start, stop);  // save runtime for statistics
         if (is_log_enabled == 1)
         {    
             thread_log_file = fopen(thread_log_file_name, "a");
-            fprintf(thread_log_file, "TIME %lld: END job %s\n", total_runtime, orig_commands);
+            fprintf(thread_log_file, "TIME %lld: END job %s\n", ((struct args*)input)->total_runtime, orig_commands);
             fclose(thread_log_file);
         }
         
@@ -124,6 +124,7 @@ void* read_and_execute(void *input) {
         free(command);
         free(orig_commands);
         *is_busy = 0;
+        sleep(1);
     }
 }
 
@@ -168,7 +169,7 @@ void run_command_line(char* command_line, char** count_files)
 void execute_dispatcher(char *command, pthread_t* threads, Queue *q, int** is_busy) {
     char* str_num = (char*) malloc(6*sizeof(char));
     if (strcmp(command, "wait") == 0) {
-        wait(MAX_NUM_THREADS, is_busy);
+        wait(MAX_NUM_THREADS, is_busy, q);
     }
     else  // sleep is left as an option
     {
