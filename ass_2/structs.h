@@ -21,10 +21,11 @@ typedef struct Queue{
 
 struct args {
     Queue *q;
-    pthread_mutex_t queue_lock;
-    pthread_mutex_t files_lock;
     char** count_files;
     int* is_busy;
+    struct timeval time_of_run;
+    long long int* total_runtime;
+    int thread_id;
 };
 
 #endif

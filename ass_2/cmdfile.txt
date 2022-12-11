@@ -1,2 +1,3 @@
-worker repeat 3; increment 2; msleep 30
+worker repeat 3; increment 2
+worker increment 1; decrement 3; repeat 3; decrement 3
 worker increment 1; decrement 3; repeat 3; decrement 3

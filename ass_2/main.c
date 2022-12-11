@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include "consts.h"
 #include "structs.h"
 #include "queue.h"
@@ -54,6 +55,7 @@ void duplicate_on_repeat(QueueNode* q)
 
 int main(int argc, char *argv[])
 {
+    printf("Start");
     int i;
     int num_threads = atoi(argv[2]);
     int num_counters = atoi(argv[3]);
@@ -70,10 +72,9 @@ int main(int argc, char *argv[])
     Queue *queue = create_queue();
     
     pthread_t threads[MAX_NUM_THREADS];
-    pthread_mutex_t queue_mutex;
-    pthread_mutex_t files_mutex;
 
-    struct args *thread_input = (struct args *)malloc(sizeof(struct args));
+    // struct args *thread_input = (struct args *)malloc(sizeof(struct args));
+    struct args *all_args[MAX_NUM_THREADS];
 
     for (int i=0; i<num_counters; i++)
     {
@@ -100,16 +101,20 @@ int main(int argc, char *argv[])
 		printf("Commands file doesn't open. Please check and run again.");
 		exit(1);
 	}
-    thread_input->count_files = count_files;
-    thread_input->files_lock = files_mutex;
-    thread_input->queue_lock = queue_mutex;
-    thread_input->q = queue;
+    
 
+    printf("Creating threads");
     // create the threads with the function to wait for queue
     for (int i = 0; i < num_threads; i++) {
+        struct args *thread_input = (struct args *)malloc(sizeof(struct args));
+        thread_input->count_files = count_files;
+        thread_input->q = queue;
         thread_input->is_busy = (is_busy + i);
+        thread_input->thread_id = i;
+        all_args[i] = thread_input;
         pthread_create(&threads[i], NULL, read_and_execute, (void*)thread_input);
     }
+    printf("Done creating threads");
 
     while ((fgets(buffer, buffer_len, commands_file)) != NULL) {
         if (buffer[strlen(buffer) - 1] == '\n')
@@ -118,14 +123,18 @@ int main(int argc, char *argv[])
         }
         if (is_worker(buffer) == true)
         {
+            printf("pushing to queue");
             push_worker_to_queue(queue, buffer);
+            printf("pushed to queue");
         }
         else
         {
             execute_dispatcher(buffer + 11, threads, queue, is_busy);
+            printf("dispatcher");
         }
     }
     wait(num_threads, is_busy);
+    printf("done waiting");
     sleep(30);
     free(count_files);
     free_queue(queue);
