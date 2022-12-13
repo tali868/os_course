@@ -1,0 +1,6 @@
+worker repeat 3; increment 2; msleep 3
+worker increment 1; decrement 3; repeat 3; decrement 3
+worker increment 1; decrement 3; repeat 3; decrement 3
+worker repeat 3; increment 2
+dispatcher sleep 4
+worker increment 1; increment 1; repeat 3; decrement 0

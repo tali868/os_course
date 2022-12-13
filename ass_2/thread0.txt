@@ -1,32 +1,8 @@
 TIME 4: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 7: END job increment 1; decrement 3; repeat 3; decrement 3
+TIME 6: END job increment 1; decrement 3; repeat 3; decrement 3
 TIME 1007: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 1009: END job increment 1; decrement 3; repeat 3; decrement 3
-TIME 2009: START job repeat 3; increment 2
-TIME 2012: END job repeat 3; increment 2
-TIME 3012: START job increment 1; increment 1; repeat 3; decrement 0
-TIME 3014: END job increment 1; increment 1; repeat 3; decrement 0
-TIME 1: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 4: END job increment 1; decrement 3; repeat 3; decrement 3
-TIME 1004: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 1007: END job increment 1; decrement 3; repeat 3; decrement 3
-TIME 2007: START job repeat 3; increment 2
-TIME 2009: END job repeat 3; increment 2
-TIME 3009: START job increment 1; increment 1; repeat 3; decrement 0
-TIME 3012: END job increment 1; increment 1; repeat 3; decrement 0
-TIME 1: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 4: END job increment 1; decrement 3; repeat 3; decrement 3
-TIME 1005: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 1008: END job increment 1; decrement 3; repeat 3; decrement 3
-TIME 2008: START job repeat 3; increment 2
-TIME 2011: END job repeat 3; increment 2
-TIME 3011: START job increment 1; increment 1; repeat 3; decrement 0
-TIME 3013: END job increment 1; increment 1; repeat 3; decrement 0
-TIME 4: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 7: END job increment 1; decrement 3; repeat 3; decrement 3
-TIME 1007: START job increment 1; decrement 3; repeat 3; decrement 3
-TIME 1009: END job increment 1; decrement 3; repeat 3; decrement 3
-TIME 2009: START job repeat 3; increment 2
-TIME 2011: END job repeat 3; increment 2
-TIME 3012: START job increment 1; increment 1; repeat 3; decrement 0
-TIME 3014: END job increment 1; increment 1; repeat 3; decrement 0
+TIME 1010: END job increment 1; decrement 3; repeat 3; decrement 3
+TIME 2010: START job repeat 3; increment 2
+TIME 2013: END job repeat 3; increment 2
+TIME 3013: START job increment 1; increment 1; repeat 3; decrement 0
+TIME 3015: END job increment 1; increment 1; repeat 3; decrement 0
