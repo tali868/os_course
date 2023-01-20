@@ -2,22 +2,41 @@
 #define STRUCTS_H
 
 #include <sys/types.h>
+// On-disk file system format.
+// Both the kernel and user programs use this header file.
 
-#define ROOTINO  1   // root i-number
-#define BSIZE 1024  // block size
+#define ROOTINO 1  // root i-number
+#define BSIZE 512  // block size
 
-#define FSMAGIC 0x10203040
+// Disk layout:
+// [ boot block | super block | log | inode blocks |
+//                                          free bit map | data blocks]
+//
+// mkfs computes the super block and builds an initial file system. The
+// super block describes the disk layout:
+struct superblock {
+  uint size;         // Size of file system image (blocks)
+  uint nblocks;      // Number of data blocks
+  uint ninodes;      // Number of inodes.
+  uint nlog;         // Number of log blocks
+  uint logstart;     // Block number of first log block
+  uint inodestart;   // Block number of first inode block
+  uint bmapstart;    // Block number of first free map block
+};
 
 #define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint))
 #define MAXFILE (NDIRECT + NINDIRECT)
 
-#define T_DIR  1   // Directory
-#define T_FILE 2   // File
-#define T_DEV  3   // Special device
-
-// Directory is a file containing a sequence of dirent structures.
-#define DIRSIZ 14
+// On-disk inode structure
+struct dinode {
+  short type;           // File type
+  short major;          // Major device number (T_DEV only)
+  short minor;          // Minor device number (T_DEV only)
+  short nlink;          // Number of links to inode in file system
+  uint size;            // Size of file (bytes)
+  uint addrs[NDIRECT+1];   // Data block addresses
+};
 
 // Inodes per block.
 #define IPB           (BSIZE / sizeof(struct dinode))
@@ -28,31 +47,15 @@
 // Bitmap bits per block
 #define BPB           (BSIZE*8)
 
-typedef struct superblock {
-  uint magic;        // Must be FSMAGIC
-  uint size;         // Size of file system image (blocks)
-  uint nblocks;      // Number of data blocks
-  uint ninodes;      // Number of inodes.
-  uint nlog;         // Number of log blocks
-  uint logstart;     // Block number of first log block
-  uint inodestart;   // Block number of first inode block
-  uint bmapstart;    // Block number of first free map block
-} superblock;
+// Block of free map containing bit for block b
+#define BBLOCK(b, sb) (b/BPB + sb.bmapstart)
 
-// Inode structure
-typedef struct dinode {
-    short type;    // File type
-    short major;   // Major device number (T_DEV only)
-    short minor;   // Minor device number (T_DEV only)
-    short nlink;   // Number of links to inode in file system
-    uint size; // Size of file (bytes)
-    uint addrs[NDIRECT+1];  // Data block addresses
-} dinode;
+// Directory is a file containing a sequence of dirent structures.
+#define DIRSIZ 14
 
-// Directory entry structure
-typedef struct dirent {
-    ushort inum;          // Inode number
-    char name[DIRSIZ];    // File name
-} dirent;
+struct dirent {
+  ushort inum;
+  char name[DIRSIZ];
+};
 
 #endif
