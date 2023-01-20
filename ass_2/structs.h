@@ -8,6 +8,15 @@
 #define MAX_NUM_THREADS 4096
 #define MAX_NUM_FILES 100
 
+// Inodes per block.
+#define IPB           (BSIZE / sizeof(struct dinode))
+
+// Block containing inode i
+#define IBLOCK(i, sb)     ((i) / IPB + sb.inodestart)
+
+// Bitmap bits per block
+#define BPB           (BSIZE*8)
+
 typedef struct QueueNode{
 	char *data;
 	struct QueueNode *next;

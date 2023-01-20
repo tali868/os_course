@@ -1,0 +1,195 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+
+#include "fs.h"
+
+int fsfd;
+
+void rsect(uint sec, void *buf)
+{
+  if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE){
+    perror("lseek error");
+    exit(1);
+  }
+  if(read(fsfd, buf, BSIZE) != BSIZE){
+    perror("read error");
+    exit(1);
+  }
+}
+// read the super block inode and assign to superblock struct
+void read_superblock(int fd, struct superblock* sb) {
+    unsigned char buf[BSIZE];
+    memset(buf, 0, sizeof(buf));
+    rsect(1, buf);
+    memmove(sb, buf, sizeof(*sb));
+}
+// read the inode inum and assign to dinode struct
+void read_inode(struct dinode* inode, int start_sector, int inum) {
+    unsigned char buf[BSIZE];
+    // find the sector of the inode
+    int sector = start_sector + inum / IPB;
+    // read the sector
+    memset(buf, 0, sizeof(buf));
+    rsect(sector, buf);
+    // assign the inode to the dinode struct
+    memmove(inode, buf + inum % IPB * sizeof(*inode), sizeof(*inode));
+}
+// add spaces to the end of a string for ls visualisation
+char* add_spaces_in_end(char *str, int n){
+    unsigned char *buf;
+    int len = strlen(str);
+    buf = malloc(n + 1);
+    for(int i = 0; i < len; i++){
+        buf[i] = str[i];
+    }
+    for(int i = len; i < n; i++){
+        buf[i] = ' ';
+    }
+    buf[n] = '\0';
+    return buf;
+}
+// list the files in the root directory
+void ls(char buf, struct dinode inodes, int inum) {
+    int k = 0;
+    // find the size of the root directory
+    int size = inodes[inum].size;
+    int n = size / BSIZE;
+    for (int i = 0; i < n; i++){
+        // read the root directory data block
+        rsect(inodes[inum].addrs[i], buf);
+        for(int j = 0; j < BSIZE; j += 16){
+            if (buf[j] > 0){
+                k++;
+            }
+        }
+    }
+    rsect(inodes[inum].addrs[n], buf);
+    for(int j = 0; j < BSIZE; j += 16){
+        if (buf[j] > 0){
+            k++;
+        }
+    }
+    // 
+    int dir_inodes[k];
+    char *dir_names[k];
+    k=0;
+    for (int i = 0; i < n; i++){
+        // read the root directory data block
+        rsect(inodes[inum].addrs[i], buf);
+        for(int j = 0; j < BSIZE; j += 16){
+            if (buf[j] > 0){
+                dir_names[k] = buf + j + 2;
+                dir_inodes[k] = buf[j];
+                k++;
+            }
+        }
+    }
+    rsect(inodes[inum].addrs[n], buf);
+    for(int j = 0; j < BSIZE; j += 16){
+        if (buf[j] > 0){
+            dir_names[k] = buf + j + 2;
+            dir_inodes[k] = buf[j];
+            k++;
+        }
+    }
+    for (int i = 0; i < k; i++) {
+        printf("%s%d %d %d\n", buf = add_spaces_in_end(dir_names[i], 15), inodes[dir_inodes[i]].type, dir_inodes[i], inodes[dir_inodes[i]].size);
+        free(buf);
+    }
+}
+
+void cp(char buf, struct dinode inodes, int inum, char *xv6file, char *linuxfile) {
+    char addr_buf[BSIZE];
+    int k = 0;
+    int dir_inode_num;
+    rsect(inodes[inum].addrs[0], buf);
+    // find inode number of xv6file
+    for (int j = 0; j < BSIZE; j += 16) {
+        // if file exists in root directory
+        if (strcmp(buf + j + 2, xv6file) == 0){
+            // get inode number of xv6file
+            dir_inode_num = buf[j];
+            // if file is a directory
+            int fd = open(linuxfile, O_WRONLY | O_CREAT, 0666);
+            if (fd < 0){
+                fprintf(stderr, "could not open file %s", linuxfile);
+                exit(1);
+            }
+            // find the size of the file
+            int size = inodes[dir_inode_num].size;
+            int n = size / BSIZE;
+            // read the file
+            for (int j = 0; j < n; j++) {
+                if (j < NDIRECT) {
+                    // read the sector
+                    rsect(inodes[dir_inode_num].addrs[j], buf);
+                    // write the sector to the linux file
+                    write(fd, buf, BSIZE);
+                }
+            }
+            if (n > NDIRECT){
+                // read the indirect block addresses
+                rsect(inodes[dir_inode_num].addrs[NDIRECT], addr_buf);
+                for (int k = 0; k < n - NDIRECT; k++) {
+                    // read the indirect sector
+                    rsect(addr_buf[k], buf);
+                    write(fd, buf, BSIZE);
+                }
+            }
+            // if the file is not a multiple of BSIZE
+            if (size % BSIZE != 0) {
+                if (n < NDIRECT) {
+                    // read the sector
+                    rsect(inodes[dir_inode_num].addrs[n], buf);
+                }
+                else {
+                    // read the indirect block addresses
+                    rsect(inodes[dir_inode_num].addrs[NDIRECT], addr_buf);
+                    // read the indirect sector
+                    rsect(addr_buf[n - NDIRECT], buf);
+                }
+                // write the sector to the linux file
+                write(fd, buf, size % BSIZE);
+            }
+            close(fd);
+            return;
+        }
+    }
+    // if file does not exist in root directory
+    printf("File %s does not exist in the root directory\n", xv6file);
+    exit(1);
+}
+
+
+int main (int args, char *argv[]) {
+    struct superblock sb; 
+    char buf[BSIZE];
+    if (args < 3) {
+        printf("Usage: %s <fs.img> ls/cp [xv6file linuxfile]\n", argv[0]);
+        exit(1);
+    }
+    fsfd = open(argv[1], O_RDONLY, 0444);
+        if(fsfd < 0){
+        fprintf(stderr, "could not open file %s", argv[1]);
+        exit(1);
+    }
+    read_superblock(fsfd, &sb);
+    struct dinode inodes[sb.ninodes];
+    for (int i = 0; i < sb.ninodes; i++) {
+        read_inode(&inodes[i], sb.inodestart, i);
+    }
+    if (strcmp(argv[2], "ls") == 0){ 
+        ls(buf, inodes, ROOTINO);
+    }
+    if (strcmp(argv[2], "cp") == 0){
+        if (args < 5) {
+            printf("Usage: %s <fs.img> cp [xv6file linuxfile]\n", argv[0]);
+            exit(1);
+        }
+        cp(buf, inodes, ROOTINO, argv[3], argv[4]);
+    }
+    return 0;
+}
