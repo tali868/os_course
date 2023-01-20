@@ -19,6 +19,15 @@
 // Directory is a file containing a sequence of dirent structures.
 #define DIRSIZ 14
 
+// Inodes per block.
+#define IPB           (BSIZE / sizeof(struct dinode))
+
+// Block containing inode i
+#define IBLOCK(i, sb)     ((i) / IPB + sb.inodestart)
+
+// Bitmap bits per block
+#define BPB           (BSIZE*8)
+
 typedef struct superblock {
   uint magic;        // Must be FSMAGIC
   uint size;         // Size of file system image (blocks)

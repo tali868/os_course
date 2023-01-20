@@ -114,12 +114,12 @@ void cp(struct dinode *inodes, int inum, char *xv6file, char *linux_dir) {
 
 
 void read_inode(struct dinode* inode, int inode_start, int num) {
-    //unsigned char buf[BSIZE];
-    //int sector = inode_start + num * IPB;
+    unsigned char buf[BSIZE];
+    int sector = inode_start + num * IPB;
 
-    //memset(buf, 0, sizeof(buf));
-    //read_sect(sector, buf);
-    //memmove(inode, buf + num % IPB * sizeof(*inode), sizeof(*inode));
+    memset(buf, 0, sizeof(buf));
+    read_sect(sector, buf);
+    memmove(inode, buf + num % IPB * sizeof(*inode), sizeof(*inode));
 }
 
 
