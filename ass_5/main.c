@@ -18,9 +18,10 @@ void read_sect(uint sec, void *buf, size_t buf_size) {
     read(fsfd, buf, BSIZE);
 }
 
-void read_block(uint sec, void *buf) {
-    lseek(fsfd, sec * BSIZE, 0);
-    read(fsfd, buf, BSIZE);
+
+void read_inode(uint sec, void *buf, size_t buf_size, uint inum) {
+    fseek(f, sec * BSIZE + inum * buf_size, SEEK_SET);
+    fread(buf, 1, buf_size, f);
 }
 
 void read_struct(uint sec, void *buf, size_t buf_size)
@@ -40,6 +41,8 @@ void ls(struct dinode *inodes, int inum) {
 
     int size = inodes[inum].size;
     int n = size / BSIZE;
+    printf(".\n");
+    printf("..\n");
 
     for (int i = 0; i < n+1; i++)
     {
@@ -123,12 +126,6 @@ void cp(struct dinode *inodes, int inum, char *xv6file, char *linux_dir) {
     exit(1);
 }
 
-void read_inode(struct dinode* inode, int inode_start, int num) {
-    int sector = inode_start + num * IPB;
-
-    read_struct(sector, inode, sizeof(struct dinode));
-}
-
 
 void get_superblock(struct superblock* sb) {
     read_struct(1, sb, sizeof(struct superblock));
@@ -159,12 +156,12 @@ int main(int argc, char *argv[]) {
     struct dinode inodes[sb.ninodes];
 
     for (int i = 0; i < inode_count; i++) {
-        read_inode(&inodes[i], sb.inodestart, i);
+        read_inode(sb.inodestart, &inodes[i], sizeof(struct dinode), i);
     }
 
     if (strcmp(func_type, "ls") == 0)  // Print the contents of the root directory
     {
-        ls(inodes, ROOTINO);
+        ls(inodes, 1);
     }
 
     if (strcmp(func_type, "cp") == 0)  // Copy file to Linux
@@ -173,5 +170,4 @@ int main(int argc, char *argv[]) {
     }
 
     fclose(f);  // Close the image file
-    // free(inodes);
 }
